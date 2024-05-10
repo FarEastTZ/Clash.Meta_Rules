@@ -139,7 +139,6 @@ payload:
   - DOMAIN-SUFFIX,ipip.net
   - DOMAIN-SUFFIX,ip.la
   - DOMAIN-SUFFIX,ip-cdn.com
-  - DOMAIN-SUFFIX,ipv6-test.com
   - DOMAIN-SUFFIX,myip.la
   - DOMAIN-SUFFIX,test-ipv6.com
   - DOMAIN-SUFFIX,whatismyip.com
@@ -225,7 +224,6 @@ payload:
   - DOMAIN-SUFFIX,futu5.com
   - DOMAIN-SUFFIX,futunn.com
   - DOMAIN-SUFFIX,gandi.net
-  - DOMAIN-SUFFIX,gcores.com
   - DOMAIN-SUFFIX,geilicdn.com
   - DOMAIN-SUFFIX,getpricetag.com
   - DOMAIN-SUFFIX,gifshow.com
@@ -250,7 +248,6 @@ payload:
   - DOMAIN-SUFFIX,kkmh.com
   - DOMAIN-SUFFIX,lanzous.com
   - DOMAIN-SUFFIX,licdn.com
-  - DOMAIN-SUFFIX,linkedin.com
   - DOMAIN-SUFFIX,luojilab.com
   - DOMAIN-SUFFIX,maoyan.com
   - DOMAIN-SUFFIX,maoyun.tv

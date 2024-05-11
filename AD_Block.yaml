@@ -1,4 +1,4 @@
-payload:
+I payload:
   # > 毒奶去广告
   - DOMAIN,delivery-node-aziz.voe-network.net
   - DOMAIN,inspiringaccurate.com
@@ -8363,6 +8363,7 @@ payload:
   - DOMAIN-SUFFIX,googleadsserving.cn
   - DOMAIN-SUFFIX,googlesyndication.com
   - DOMAIN-SUFFIX,googletagservices.com
+  - DOMAIN-SUFFIX,googletagmanager.com
   - DOMAIN-SUFFIX,da.mgtv.com
   - DOMAIN-SUFFIX,da.hunantv.com
   - DOMAIN-SUFFIX,log.hunantv.com

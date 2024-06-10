@@ -2612,7 +2612,6 @@ payload:
   - DOMAIN-SUFFIX,crashes.mo.wps.cn
   - DOMAIN-SUFFIX,crasheye.cn
   - DOMAIN-SUFFIX,crashlytics.163.com
-  - DOMAIN-SUFFIX,crashlytics.com
   - DOMAIN-SUFFIX,crdrjs.info
   - DOMAIN-SUFFIX,cre.dp.sina.cn
   - DOMAIN-SUFFIX,cre.mix.sina.com.cn
@@ -6647,10 +6646,8 @@ payload:
   - DOMAIN-SUFFIX,servicer.adskeeper.co.uk
   - DOMAIN-SUFFIX,serving-sys.com
   - DOMAIN-SUFFIX,sestat.baidu.com
-  - DOMAIN-SUFFIX,setting.crashlytics.com
   - DOMAIN-SUFFIX,setting.rayjump.com
   - DOMAIN-SUFFIX,setting.snswin.qq.com
-  - DOMAIN-SUFFIX,settings.crashlytics.com
   - DOMAIN-SUFFIX,sezvc.com
   - DOMAIN-SUFFIX,sfloushi.com
   - DOMAIN-SUFFIX,sgbfjs.info

@@ -98,54 +98,67 @@ proxy-groups:
     type: select
     include-all: true
     exclude-type: direct
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Area.png
 
   - name: 默认
     type: select
     proxies: [全部节点,自动选择,直连,香港,台湾,日本,新加坡,美国,其它地区]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
   - name: Google
     type: select
     proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png
 
   - name: Telegram
     type: select
     proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram.png
 
   - name: Twitter
     type: select
     proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Twitter.png
 
   - name: 哔哩哔哩
     type: select
     proxies: [直连,默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/bilibili_3.png
 
   - name: 巴哈姆特
     type: select
     proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bahamut.png
 
   - name: YouTube
     type: select
     proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png
 
   - name: NETFLIX
     type: select
     proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Netflix.png
 
   - name: Spotify
     type: select
     proxies:  [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png
 
   - name: Github
     type: select
     proxies:  [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/GitHub.png
 
   - name: 国内
     type: select
     proxies:  [直连,默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China_Map.png
 
   - name: 其他
     type: select
     proxies:  [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png
 
   #分隔,下面是地区分组
   - name: 香港
@@ -153,42 +166,49 @@ proxy-groups:
     include-all: true
     exclude-type: direct
     filter: "(?i)港|hk|hongkong|hong kong"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png
 
   - name: 台湾
     type: select
     include-all: true
     exclude-type: direct
     filter: "(?i)台|tw|taiwan"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png
 
   - name: 日本
     type: select
     include-all: true
     exclude-type: direct
     filter: "(?i)日|jp|japan"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png
 
   - name: 美国
     type: select
     include-all: true
     exclude-type: direct
     filter: "(?i)美|us|unitedstates|united states"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png
 
   - name: 新加坡
     type: select
     include-all: true
     exclude-type: direct
     filter: "(?i)(新|sg|singapore)"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png
 
   - name: 其它地区
     type: select
     include-all: true
     exclude-type: direct
     filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates)).*"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
 
   - name: 自动选择
     type: url-test
     include-all: true
     exclude-type: direct
     tolerance: 10
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png
 
 rules:
   - GEOIP,lan,直连,no-resolve

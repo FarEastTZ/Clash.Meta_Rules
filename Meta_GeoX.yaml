@@ -212,7 +212,9 @@ proxy-groups:
     type: url-test
     include-all: true
     exclude-type: direct
+    interval: 300
     tolerance: 10
+    lazy: true
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png
 
 rules:

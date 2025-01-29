@@ -113,7 +113,7 @@ proxy-groups:
   - name: Google
     type: select
     proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
-    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png
 
   - name: Telegram
     type: select

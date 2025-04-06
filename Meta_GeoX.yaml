@@ -3,7 +3,8 @@ proxy-providers:
   provider1:
     url: ""
     type: http
-    interval: 86400
+    interval: 43200
+    proxy: DIRECT
     health-check: {enable: true,url: "http://1.1.1.1/cdn-cgi/trace",interval: 300}
     override:
       additional-prefix: "[provider1]"
@@ -11,7 +12,8 @@ proxy-providers:
   provider2:
     url: ""
     type: http
-    interval: 86400
+    interval: 43200
+    proxy: DIRECT
     health-check: {enable: true,url: "http://1.1.1.1/cdn-cgi/trace",interval: 300}
     override:
       additional-prefix: "[provider2]"

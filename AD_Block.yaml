@@ -230,7 +230,6 @@ payload:
   - IP-CIDR,118.89.204.198/32
   - IP-CIDR6,2402:4e00:1200:ed00:0:9089:6dac:96b6/128
   - DOMAIN-SUFFIX,dd-static.jd.com
-  - DOMAIN-SUFFIX,wx3.sinaimg.cn
   - DOMAIN-SUFFIX,ssl.cdne.cpmstar.com
   - DOMAIN-SUFFIX,api-access.pangolin-sdk-toutiao-b.com
   - DOMAIN-SUFFIX,mcupdate.gstarcad.com

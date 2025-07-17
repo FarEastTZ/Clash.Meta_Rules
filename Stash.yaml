@@ -53,6 +53,11 @@ proxy-groups:
     proxies: [全部节点,自动选择,直连,香港,台湾,日本,韩国,新加坡,美国,其它地区]
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
+  - name: Apple
+    type: select
+    proxies: [美国,直连,默认,香港,台湾,日本,韩国,新加坡,其它地区,全部节点,自动选择]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png
+
   - name: Steam
     type: select
     proxies: [直连,默认,香港,台湾,日本,韩国,新加坡,美国,其它地区,全部节点,自动选择]
@@ -117,43 +122,43 @@ proxy-groups:
   - name: 香港
     type: select
     include-all: true
-    filter: "(?i)港|hk|hongkong|hong kong"
+    filter: "(?i)(🇭🇰|港|hk|hongkong|hong kong)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png
 
   - name: 台湾
     type: select
     include-all: true
-    filter: "(?i)台|tw|taiwan"
+    filter: "(?i)(🇹🇼|台|tw|taiwan)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png
 
   - name: 日本
     type: select
     include-all: true
-    filter: "(?i)日|jp|japan"
+    filter: "(?i)(🇯🇵|日|jp|japan)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png
 
   - name: 美国
     type: select
     include-all: true
-    filter: "(?i)美|us|unitedstates|united states"
+    filter: "(?i)(🇺🇸|美|us|unitedstates|united states)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png
 
   - name: 新加坡
     type: select
     include-all: true
-    filter: "(?i)(新|sg|singapore)"
+    filter: "(?i)(🇸🇬|新|sg|singapore)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png
 
   - name: 韩国
     type: select
     include-all: true
-    filter: "(?i)(韩|kr|korea)"
+    filter: "(?i)(🇰🇷|韩|kr|korea)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png
 
   - name: 其它地区
     type: select
     include-all: true
-    filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|🇰🇷|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates|韩|kr|korea|直连)).*"
+    filter: "(?i)^(?!.*(?:🇭🇰|🇹🇼|🇯🇵|🇺🇸|🇸🇬|🇨🇳|🇰🇷|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates|韩|kr|korea|直连)).*"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
 
   - name: 自动选择
@@ -165,6 +170,7 @@ proxy-groups:
 
 rules:
   - GEOIP,lan,直连,no-resolve
+  - GEOSITE,apple,Apple
   - GEOSITE,github,Github
   - GEOSITE,twitter,Twitter
   - GEOSITE,youtube,YouTube

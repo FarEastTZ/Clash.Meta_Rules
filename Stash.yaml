@@ -32,9 +32,13 @@ dns:
     - "+.local"
   default-nameserver:
     - 223.5.5.5
+    - 119.29.29.29
   nameserver:
+    - https://1.0.0.1/dns-query
+    - https://8.8.4.4/dns-query
     - https://223.5.5.5/dns-query
     - https://120.53.53.53/dns-query
+  follow-rule: true
 
 proxies: 
   - name: "直连"

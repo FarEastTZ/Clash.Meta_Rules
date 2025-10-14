@@ -172,42 +172,42 @@ proxy-groups:
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)港|hk|hongkong|hong kong"
+    filter: "(?i)(🇭🇰|港|hk|hongkong|hong kong)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png
 
   - name: 台湾
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)台|tw|taiwan"
+    filter: "(?i)(🇹🇼|台|tw|taiwan)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png
 
   - name: 日本
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)日|jp|japan"
+    filter: "(?i)(🇯🇵|日|jp|japan)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png
 
   - name: 美国
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)美|us|unitedstates|united states"
+    filter: "(?i)(🇺🇸|美|us|unitedstates|united states)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png
 
   - name: 新加坡
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)(新|sg|singapore)"
+    filter: "(?i)(🇸🇬|新|sg|singapore)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png
 
   - name: 韩国
     type: select
     include-all: true
     exclude-type: direct
-    filter: "(?i)(韩|kr|korea)"
+    filter: "(?i)(🇰🇷|韩|kr|korea)"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png
 
   - name: 其它地区

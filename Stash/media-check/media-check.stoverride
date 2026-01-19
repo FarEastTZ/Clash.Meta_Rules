@@ -40,6 +40,6 @@ script-providers:
   ChatGPT-App-Check:
     url: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/script/chatgpt-app.js
   YouTube-Check:
-    url: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/script/youtube.js
+    url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/youtube.js
   Netflix-Check:
     url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/netflix.js

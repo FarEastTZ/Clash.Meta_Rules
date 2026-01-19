@@ -8,7 +8,7 @@ tiles:
     title: Apple
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png
     collapsed: true
-    url: https://gspe1-ssl.ls.apple.com
+    url: https://gspe1-ssl.ls.apple.com/pep/gcc
 
 script-providers:
   Apple-Check:

@@ -1,7 +1,7 @@
 name: Media Check
 icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Streaming.png
 desc: >
-  流媒体测试。
+  流媒体测试
 category: 流媒体
 
 tiles:

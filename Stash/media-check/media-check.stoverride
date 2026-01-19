@@ -2,6 +2,7 @@ name: Media Check
 icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Streaming.png
 desc: >
   流媒体测试。
+category: 流媒体
 
 tiles:
   - name: Apple-Check
@@ -9,7 +10,36 @@ tiles:
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png
     collapsed: true
     url: https://gspe1-ssl.ls.apple.com/pep/gcc
+  - name: ChatGPT-Web-Check
+    title: ChatGPT Web
+    icon: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/img/chatgpt.png
+    collapsed: true
+    url: https://chatgpt.com
+  - name: ChatGPT-App-Check
+    title: ChatGPT App
+    icon: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/img/chatgpt.png
+    collapsed: true
+    url: "chatgpt://"
+  - name: YouTube-Check
+    title: YouTube
+    icon: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/img/youtube.png
+    collapsed: true
+    url: https://www.youtube.com
+  - name: Netflix-Check
+    title: Netflix
+    icon: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/img/netflix.png
+    collapsed: true
+    url: https://www.netflix.com
+
 
 script-providers:
   Apple-Check:
-    url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/apple-check.js
+    url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/apple.js
+  ChatGPT-Web-Check:
+    url: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/script/chatgpt-web.js
+  ChatGPT-App-Check:
+    url: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/script/chatgpt-app.js
+  YouTube-Check:
+    url: https://fastly.jsdelivr.net/gh/StashNetworks/misc@main/collapsed-tiles/script/youtube.js
+  Netflix-Check:
+    url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/netflix.js

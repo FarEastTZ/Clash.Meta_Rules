@@ -19,24 +19,19 @@ function codeToFlag(code) {
 // 从返回值里提取国家码：支持 "US" / "JP" / "HK" / "CN"
 function parseCountryCode(raw) {
   const s = String(raw || "").trim();
-
-  // 通用：两位字母 或 两位字母(任意内容)
-  m = s.match(/^([A-Za-z]{2})(?:\([^\)]*\))?$/);
+  let m = s.match(/^([A-Za-z]{2})(?:\([^\)]*\))?$/);
   if (m) return m[1].toUpperCase();
-
   return null;
 }
 
 // 从 YouTube Premium 页面 HTML/内嵌数据中提取国家码
 function extractYouTubeCountryCode(html) {
   const s = String(html || "");
-
-  // 多种可能字段：bash 脚本用的是 "countryCode"
   const patterns = [
-    /"countryCode"\s*:\s*"([A-Za-z]{2})"/,          // "countryCode":"US"
-    /"INNERTUBE_CONTEXT_GL"\s*:\s*"([A-Za-z]{2})"/, // "INNERTUBE_CONTEXT_GL":"US"
-    /"gl"\s*:\s*"([A-Za-z]{2})"/,                   // ..."gl":"US"...（更宽松兜底）
-    /[?&]gl=([A-Za-z]{2})(?:[&#"']|$)/, // consent 页 URL 里经常有 gl=GB
+    /"countryCode"\s*:\s*"([A-Za-z]{2})"/,
+    /"INNERTUBE_CONTEXT_GL"\s*:\s*"([A-Za-z]{2})"/,
+    /"gl"\s*:\s*"([A-Za-z]{2})"/,
+    /[?&]gl=([A-Za-z]{2})(?:[&#"'\s]|$)/, // URL 里 gl=GB 这类
   ];
 
   for (const re of patterns) {
@@ -46,11 +41,9 @@ function extractYouTubeCountryCode(html) {
       if (code) return code;
     }
   }
-
   return null;
 }
 
-// 把显示文案拼成：Available (US 🇺🇸) / Not Available (CN 🇨🇳)
 function formatWithCountry(baseText, code) {
   if (!code) return baseText;
   const flag = codeToFlag(code);
@@ -58,7 +51,6 @@ function formatWithCountry(baseText, code) {
   return label ? `${baseText} (${label})` : baseText;
 }
 
-// 判断是否落到了 consent 页面
 function isConsentPage(html) {
   const s = String(html || "").toLowerCase();
   return (
@@ -66,50 +58,47 @@ function isConsentPage(html) {
     s.includes("consent.google.com") ||
     s.includes("before you continue") ||
     s.includes("继续使用 youtube") ||
-    s.includes("cookie") && s.includes("google")
+    (s.includes("cookie") && s.includes("google"))
   );
 }
 
 async function main() {
   const url = "https://www.youtube.com/premium?ucbcb=1";
 
-  // 两个 SOCS 备选值（一个更偏“拒绝”，一个更偏“接受”）
-  // 来源：社区经验（SOCS 是绕过 consent 的关键 cookie）
-  const SOCS_REJECT = "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg";
   const SOCS_ACCEPT = "CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiACGgYIgLC_pwY";
-
-  function makeHeaders(socsVal) {
+  function makeHeaders() {
     return {
       "Accept-Language": "en",
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      // 关键：SOCS +（可选）CONSENT
-      "Cookie": `SOCS=${socsVal}; CONSENT=YES+`,
+      "Cookie": `SOCS=${SOCS_ACCEPT}; CONSENT=YES+`,
     };
   }
 
-  // 第一次：先用 ACCEPT
-  let r = await request("GET", { url, headers: makeHeaders(SOCS_ACCEPT) });
+  let r = await request("GET", { url, headers: makeHeaders() });
+
   if (r.error) {
     $done({ content: "Network Error", backgroundColor: "" });
     return;
   }
 
-  // 如果还是 consent：再用 REJECT 重试一次
-  if (isConsentPage(r.data)) {
-    const r2 = await request("GET", { url, headers: makeHeaders(SOCS_REJECT) });
-    if (!r2.error) r = r2;
-  }
-
   const text = String(r.data || "");
   const lower = text.toLowerCase();
-  let countryCode = extractCountry(text);
 
-  // CN 特判
+  // 1) 国家码：优先从页面内容提取；同时也从 response 里的 Location 兜底（如果有）
+  let countryCode = extractYouTubeCountryCode(text);
+  const hdrs = (r.response && r.response.headers) ? r.response.headers : {};
+  const location = hdrs.Location || hdrs.location || "";
+  if (!countryCode && location) {
+    // 若是 302/跳转场景，Location 里可能带 gl=GB
+    countryCode = extractYouTubeCountryCode(location);
+  }
+
+  // 2) CN 特判：如果页面出现 www.google.cn
   if (lower.includes("www.google.cn")) countryCode = "CN";
 
-  // 仍是 consent：说明你的脚本环境可能“剥离 Cookie header”或 YouTube 对该出口强制同意页
-  if (isConsentPage(text)) {
+  // 3) Consent 页：直接显示 Consent Page (XX 🇽🇽) 
+  if (isConsentPage(text) || String(location).toLowerCase().includes("consent.youtube.com")) {
     $done({
       content: countryCode
         ? `Consent Page (${countryCode} ${codeToFlag(countryCode)})`
@@ -119,12 +108,12 @@ async function main() {
     return;
   }
 
-  // 不可用提示
+  // 4) Not Available 判断（兼容两种常见文案）
   if (
     lower.includes("youtube premium is not available in your country") ||
     lower.includes("premium is not available in your country")
   ) {
-    // 如果为 CN，显示 CN
+    // CN 显示 Not Available (CN 🇨🇳)
     if (countryCode === "CN") {
       $done({ content: formatWithCountry("Not Available", "CN"), backgroundColor: "" });
       return;
@@ -133,6 +122,7 @@ async function main() {
     return;
   }
 
+  // 5) Available：以前只显示 Available，现在加国家码
   if (lower.includes("ad-free")) {
     $done({
       content: formatWithCountry("Available", countryCode),
@@ -141,13 +131,12 @@ async function main() {
     return;
   }
 
-  // Unknown 时输出调试信息
-  const status = response && (response.status || response.statusCode) ? (response.status || response.statusCode) : "";
-  const finalUrl = response && (response.url || response.finalUrl) ? (response.url || response.finalUrl) : "";
-  const head200 = text.slice(0, 200).replace(/\s+/g, " ").trim();
+  // 6) Unknown：输出调试信息
+  const status = (r.response && (r.response.status || r.response.statusCode)) ? (r.response.status || r.response.statusCode) : "";
+  const head120 = text.slice(0, 120).replace(/\s+/g, " ").trim();
 
   $done({
-    content: "Unknown Error",
+    content: `Unknown Error | HTTP:${status}${countryCode ? " | CC:" + countryCode : ""}${location ? " | Loc:" + location.slice(0, 60) + "..." : ""} | Head:${head120}`,
     backgroundColor: "",
   });
 }
@@ -156,6 +145,6 @@ async function main() {
   main()
     .then((_) => {})
     .catch((error) => {
-      $done({});
+      $done({ content: "Script Error", backgroundColor: "" });
     });
 })();

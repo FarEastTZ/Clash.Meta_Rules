@@ -71,49 +71,44 @@ function isConsentPage(html) {
 }
 
 async function main() {
-  const baseHeaders = {
-    "Accept-Language": "en",
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Cookie": "CONSENT=YES+cb.20220301-11-p0.en+FX+700",
-  };
-
-  // 建议带上 ucbcb=1（有时可减少 cookie banner/跳转），不影响正常页
   const url = "https://www.youtube.com/premium?ucbcb=1";
 
-  let { error, response, data } = await request("GET", { url, headers: baseHeaders });
+  // 两个 SOCS 备选值（一个更偏“拒绝”，一个更偏“接受”）
+  // 来源：社区经验（SOCS 是绕过 consent 的关键 cookie）
+  const SOCS_REJECT = "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg";
+  const SOCS_ACCEPT = "CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiACGgYIgLC_pwY";
 
-  if (error) {
-    $done({
-      content: "Network Error",
-      backgroundColor: "",
-    });
+  function makeHeaders(socsVal) {
+    return {
+      "Accept-Language": "en",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      // 关键：SOCS +（可选）CONSENT
+      "Cookie": `SOCS=${socsVal}; CONSENT=YES+`,
+    };
+  }
+
+  // 第一次：先用 ACCEPT
+  let r = await request("GET", { url, headers: makeHeaders(SOCS_ACCEPT) });
+  if (r.error) {
+    $done({ content: "Network Error", backgroundColor: "" });
     return;
   }
 
-  // 如果仍然拿到 consent 页：再重试一次
-  if (isConsentPage(data)) {
-    const retry = await request("GET", { url, headers: baseHeaders });
-    if (!retry.error) {
-      error = retry.error;
-      response = retry.response;
-      data = retry.data;
-    }
+  // 如果还是 consent：再用 REJECT 重试一次
+  if (isConsentPage(r.data)) {
+    const r2 = await request("GET", { url, headers: makeHeaders(SOCS_REJECT) });
+    if (!r2.error) r = r2;
   }
 
-  const text = String(data || "");
+  const text = String(r.data || "");
   const lower = text.toLowerCase();
+  let countryCode = extractCountry(text);
 
-  // 先尝试从页面提取国家码
-  let countryCode = extractYouTubeCountryCode(text);
+  // CN 特判
+  if (lower.includes("www.google.cn")) countryCode = "CN";
 
-  // CN 特判（参照 bash：如果页面出现 www.google.cn 直接认为 CN）
-  if (lower.includes("www.google.cn")) {
-    countryCode = "CN";
-  }
-
-  // 如果还是 consent 页：这里就没法判断 Premium 是否可用
-  // 但至少把国家码显示出来，避免 Unknown Error 不可读
+  // 仍是 consent：说明你的脚本环境可能“剥离 Cookie header”或 YouTube 对该出口强制同意页
   if (isConsentPage(text)) {
     $done({
       content: countryCode

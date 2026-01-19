@@ -58,10 +58,14 @@ function formatWithCountry(baseText, code) {
 }
 
 async function main() {
-  const { error, response, data } = await request(
-    "GET",
-    "https://www.youtube.com/premium"
-  );
+  const { error, response, data } = await request("GET", {
+    url: "https://www.youtube.com/premium",
+    headers: {
+      "Accept-Language": "en",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    },
+  });
 
   if (error) {
     $done({
@@ -91,7 +95,7 @@ async function main() {
     return;
   }
 
-  // 不可用提示（兼容你原来的判断 + bash 的常见提示）
+  // 不可用提示
   if (
     lower.includes("youtube premium is not available in your country") ||
     lower.includes("premium is not available in your country")
@@ -110,6 +114,11 @@ async function main() {
     });
     return;
   }
+
+  // Unknown 时输出调试信息
+  const status = response && (response.status || response.statusCode) ? (response.status || response.statusCode) : "";
+  const finalUrl = response && (response.url || response.finalUrl) ? (response.url || response.finalUrl) : "";
+  const head200 = text.slice(0, 200).replace(/\s+/g, " ").trim();
 
   $done({
     content: "Unknown Error",

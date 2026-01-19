@@ -1,0 +1,15 @@
+name: Media Check
+icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Streaming.png
+desc: >
+  流媒体测试。
+
+tiles:
+  - name: Apple-Check
+    title: Apple
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png
+    collapsed: true
+    url: https://gspe1-ssl.ls.apple.com
+
+script-providers:
+  Apple-Check:
+    url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/apple-check.js

@@ -1,23 +1,16 @@
 async function request(method, req) {
   return new Promise((resolve) => {
     const httpMethod = $httpClient[method.toLowerCase()];
-    httpMethod(req, (error, response, data) => {
-      resolve({ error, response, data });
-    });
+    httpMethod(req, (error, response, data) => resolve({ error, response, data }));
   });
 }
 
-// 两位国家码 -> 国旗
 function codeToFlag(code) {
   if (!code || !/^[A-Z]{2}$/.test(code)) return "";
   const A = 0x1f1e6;
-  return String.fromCodePoint(
-    code.charCodeAt(0) - 65 + A,
-    code.charCodeAt(1) - 65 + A
-  );
+  return String.fromCodePoint(code.charCodeAt(0) - 65 + A, code.charCodeAt(1) - 65 + A);
 }
 
-// 两位国家码规范化
 function parseCountryCode(raw) {
   const s = String(raw || "").trim();
   const m = s.match(/^([A-Za-z]{2})(?:\([^\)]*\))?$/);
@@ -41,7 +34,6 @@ function isConsentPage(html) {
   );
 }
 
-// 从页面里提取 countryCode / gl
 function extractYouTubeCountryCode(text) {
   const s = String(text || "");
   const patterns = [
@@ -52,44 +44,53 @@ function extractYouTubeCountryCode(text) {
   ];
   for (const re of patterns) {
     const m = s.match(re);
-    if (m && m[1]) {
-      const code = parseCountryCode(m[1]);
-      if (code) return code;
-    }
+    if (m && m[1]) return parseCountryCode(m[1]);
   }
   return null;
 }
 
-async function main() {
-  const url = "https://www.youtube.com/premium";
-
-  const CONSENT = "YES+cb.20220301-11-p0.en+FX+700";
-  const SOCS = "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg";
-
-  const req = {
-    url,
+function makeReq(cookie) {
+  return {
+    url: "https://www.youtube.com/premium",
     headers: {
       "Accept-Language": "en",
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      "Cookie": `CONSENT=${CONSENT}; SOCS=${SOCS}`,
+      "Cookie": cookie,
     },
-    timeout: 5,
-    // 不继承/污染 cookie
+    timeout: 8,
     "auto-cookie": false,
     "auto-redirect": true,
   };
+}
 
-  const { error, response, data } = await request("GET", req);
+async function main() {
+  // 1) cookie
+  const cookieBashLike =
+    "YSC=BiCUU3-5Gdk; " +
+    "CONSENT=YES+cb.20220301-11-p0.en+FX+700; " +
+    "GPS=1; " +
+    "VISITOR_INFO1_LIVE=4VwPMkB7W5A; " +
+    "PREF=tz=Asia.Shanghai; " +
+    "_gcl_au=1.1.1809531354.1646633279";
 
-  if (error) {
+  // 2) 兜底：如果还是 consent，再加一个 SOCS(ACCEPT ALL) 重试
+  const SOCS_ACCEPT =
+    "CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiACGgYIgLC_pwY";
+
+  let r = await request("GET", makeReq(cookieBashLike));
+  if (r.error) {
     $done({ content: "Network Error", backgroundColor: "" });
     return;
   }
 
-  const text = String(data || "");
-  const lower = text.toLowerCase();
+  let text = String(r.data || "");
+  if (isConsentPage(text)) {
+    r = await request("GET", makeReq(cookieBashLike + "; SOCS=" + SOCS_ACCEPT));
+    if (!r.error) text = String(r.data || "");
+  }
 
+  const lower = text.toLowerCase();
   let countryCode = extractYouTubeCountryCode(text);
 
   // CN 特判
@@ -105,13 +106,6 @@ async function main() {
     return;
   }
 
-  // CN -> Not Available (CN 🇨🇳)
-  if (countryCode === "CN") {
-    $done({ content: formatWithCountry("Not Available", "CN"), backgroundColor: "" });
-    return;
-  }
-
-  // 不可用文案
   if (
     lower.includes("youtube premium is not available in your country") ||
     lower.includes("premium is not available in your country")
@@ -120,7 +114,6 @@ async function main() {
     return;
   }
 
-  // 可用
   if (lower.includes("ad-free")) {
     $done({ content: formatWithCountry("Available", countryCode), backgroundColor: "#FF0000" });
     return;

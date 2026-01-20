@@ -1,16 +1,29 @@
-async function request(method, req) {
+async function request(method, params) {
   return new Promise((resolve) => {
     const httpMethod = $httpClient[method.toLowerCase()];
-    httpMethod(req, (error, response, data) => resolve({ error, response, data }));
+    httpMethod(params, (error, response, data) => {
+      resolve({ error, response, data });
+    });
   });
 }
 
-// ===== 显示相关 =====
+// 把两位国家码转成国旗 Emoji（如 US -> 🇺🇸）
 function codeToFlag(code) {
   if (!code || !/^[A-Z]{2}$/.test(code)) return "";
   const A = 0x1f1e6;
-  return String.fromCodePoint(code.charCodeAt(0) - 65 + A, code.charCodeAt(1) - 65 + A);
+  const c1 = code.charCodeAt(0) - 65 + A;
+  const c2 = code.charCodeAt(1) - 65 + A;
+  return String.fromCodePoint(c1, c2);
 }
+
+// 两位国家码标准化
+function parseCountryCode(raw) {
+  const s = String(raw || "").trim();
+  const m = s.match(/^([A-Za-z]{2})(?:\([^\)]*\))?$/);
+  return m ? m[1].toUpperCase() : null;
+}
+
+// 拼接显示文案：Available (US 🇺🇸)
 function formatWithCountry(baseText, code) {
   if (!code) return baseText;
   const flag = codeToFlag(code);
@@ -18,214 +31,163 @@ function formatWithCountry(baseText, code) {
   return label ? `${baseText} (${label})` : baseText;
 }
 
-// ===== 解析相关 =====
+// 判断是否 consent 页面（尽量严格，避免误判）
 function isConsentPage(html) {
   const s = String(html || "").toLowerCase();
   return (
     s.includes("consent.youtube.com") ||
+    s.includes("consent.google.com") ||
     s.includes("before you continue") ||
+    s.includes("continue to youtube") ||
     s.includes("继续使用 youtube") ||
-    (s.includes("cookie") && s.includes("google")) ||
-    s.includes("consent") && s.includes("save")
+    // 很多同意页会出现 save/consent 的 form
+    (s.includes("/save") && s.includes("consent"))
   );
 }
 
-function extractCountryCodeFromHtml(html) {
+// 从 Premium 页面 HTML/内嵌数据中提取国家码（兜底）
+function extractCountryFromHtml(html) {
   const s = String(html || "");
+
   const patterns = [
-    /"countryCode"\s*:\s*"([A-Za-z]{2})"/,
-    /"INNERTUBE_CONTEXT_GL"\s*:\s*"([A-Za-z]{2})"/,
-    /[?&]gl=([A-Za-z]{2})(?:[&#"'\s]|$)/,
+    /"countryCode"\s*:\s*"([A-Za-z]{2})"/,           // "countryCode":"US"
+    /"INNERTUBE_CONTEXT_GL"\s*:\s*"([A-Za-z]{2})"/,  // "INNERTUBE_CONTEXT_GL":"US"
+    /"gl"\s*:\s*"([A-Za-z]{2})"/,                    // ..."gl":"US"...
+    /[?&]gl=([A-Za-z]{2})(?:[&#"'\s]|$)/,            // URL 里 gl=GB
   ];
+
   for (const re of patterns) {
     const m = s.match(re);
-    if (m && m[1]) return m[1].toUpperCase();
-  }
-  return null;
-}
-
-function extractConsentUrl(html) {
-  const s = String(html || "");
-  const m = s.match(/https:\/\/consent\.youtube\.com\/m\?[^"'<> \n\r\t]+/i);
-  return m ? m[0] : null;
-}
-
-function parseHiddenInputs(html) {
-  const s = String(html || "");
-  const inputs = {};
-  const re = /<input[^>]+type="hidden"[^>]*>/gi;
-  const nodes = s.match(re) || [];
-  for (const node of nodes) {
-    const n = (node.match(/name="([^"]+)"/i) || [])[1];
-    const v = (node.match(/value="([^"]*)"/i) || [])[1];
-    if (n) inputs[n] = v || "";
-  }
-  return inputs;
-}
-
-function parseFormAction(html) {
-  const s = String(html || "");
-  const m = s.match(/action="([^"]*consent\.youtube\.com\/save[^"]*)"/i);
-  if (m) return m[1];
-  // 有时 action 可能是相对路径
-  const m2 = s.match(/action="([^"]*\/save[^"]*)"/i);
-  if (m2) {
-    const a = m2[1];
-    return a.startsWith("http") ? a : ("https://consent.youtube.com" + a);
-  }
-  return "https://consent.youtube.com/save";
-}
-
-function pickAcceptButton(html) {
-  const s = String(html || "");
-  // button 标签
-  const reBtn = /<button[^>]*name="([^"]+)"[^>]*value="([^"]*)"[^>]*>([\s\S]*?)<\/button>/gi;
-  let m;
-  while ((m = reBtn.exec(s)) !== null) {
-    const name = m[1], value = m[2];
-    const inner = (m[3] || "").replace(/\s+/g, " ").trim();
-    if (/accept all|i agree|agree|accept|同意|接受|全部接受|继续/i.test(inner)) {
-      return { name, value };
+    if (m && m[1]) {
+      const code = parseCountryCode(m[1]);
+      if (code) return code;
     }
   }
-  // input submit
-  const reInp = /<input[^>]*type="submit"[^>]*name="([^"]+)"[^>]*value="([^"]*)"/gi;
-  while ((m = reInp.exec(s)) !== null) {
-    const name = m[1], value = m[2];
-    if (/accept|agree|同意|接受|继续/i.test(value)) return { name, value };
-  }
   return null;
 }
 
-function toFormBody(obj) {
-  return Object.keys(obj)
-    .map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(String(obj[k] ?? "")))
-    .join("&");
-}
+// ========== 从响应头 Set-Cookie 里解析国家码（更稳） ==========
 
-// ===== 脚本内 cookie jar（避免 Stash 全局污染）=====
 function getSetCookie(headers) {
   if (!headers) return [];
   const sc = headers["Set-Cookie"] || headers["set-cookie"] || headers["SET-COOKIE"];
   if (!sc) return [];
   if (Array.isArray(sc)) return sc;
-  // 有的实现会用换行拼起来
-  return String(sc).split("\n").map((x) => x.trim()).filter(Boolean);
+  // 有些实现会把多个 Set-Cookie 用换行拼起来
+  return String(sc)
+    .split("\n")
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
-function updateJarFromHeaders(jar, headers) {
-  const lines = getSetCookie(headers);
-  for (const line of lines) {
-    const kv = line.split(";")[0];
-    const idx = kv.indexOf("=");
-    if (idx > 0) {
-      const name = kv.slice(0, idx).trim();
-      const value = kv.slice(idx + 1).trim();
-      if (name) jar[name] = value;
-    }
+// base64 -> bytes（优先用 atob；如果没有则返回 null）
+function b64ToBytes(b64) {
+  try {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 0xff;
+    return bytes;
+  } catch (e) {
+    return null;
   }
 }
 
-function jarToCookie(jar) {
-  return Object.keys(jar).map((k) => `${k}=${jar[k]}`).join("; ");
+// 从 VISITOR_PRIVACY_METADATA 解两位国家码
+function extractCCFromVisitorPrivacy(headers) {
+  const lines = getSetCookie(headers);
+  const line = lines.find((x) => /^VISITOR_PRIVACY_METADATA=/i.test(String(x).trim()));
+  if (!line) return null;
+
+  const m = String(line).match(/VISITOR_PRIVACY_METADATA=([^;]+)/i);
+  if (!m) return null;
+
+  // 先 URL decode（把 %3D%3D 还原）
+  const val = decodeURIComponent(m[1]);
+
+  // 再 base64 decode
+  const bytes = b64ToBytes(val);
+  if (!bytes) return null;
+
+  // 在字节流里找连续两个大写字母（US/JP/GB/CN 等）
+  for (let i = 0; i < bytes.length - 1; i++) {
+    const a = bytes[i];
+    const b = bytes[i + 1];
+    if (a >= 65 && a <= 90 && b >= 65 && b <= 90) {
+      return String.fromCharCode(a, b);
+    }
+  }
+  return null;
 }
 
-async function fetchWithJar(method, url, jar, extraHeaders, body) {
-  const headers = Object.assign(
-    {
+// ========== 主流程 ==========
+
+async function main() {
+  const req = {
+    url: "https://www.youtube.com/premium",
+    headers: {
       "Accept-Language": "en",
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      // 不塞 Cookie：避免污染导致“越测越全 consent”
     },
-    extraHeaders || {}
-  );
+    timeout: 10,
+    "auto-cookie": false,   // 关键：每次检测不复用 cookie
+    "auto-redirect": true,
+  };
 
-  const cookie = jarToCookie(jar);
-  if (cookie) headers["Cookie"] = cookie;
+  const { error, response, data } = await request("GET", req);
 
-  const req = { url, headers, timeout: 10, "auto-cookie": false, "auto-redirect": true };
-  if (method === "POST") req.body = body;
-
-  const r = await request(method, req);
-  if (!r.error && r.response && r.response.headers) updateJarFromHeaders(jar, r.response.headers);
-  return r;
-}
-
-// ===== 主流程 =====
-async function main() {
-  const jar = {}; // 每次运行从空 jar 开始，永远不会“越测越乱”
-
-  // 1) 拉 premium
-  let r = await fetchWithJar("GET", "https://www.youtube.com/premium", jar);
-  if (r.error) {
+  if (error) {
     $done({ content: "Network Error", backgroundColor: "" });
     return;
   }
-  let html = String(r.data || "");
 
-  // 2) 如果是 consent：走一次 accept 流程
-  if (isConsentPage(html)) {
-    const consentUrl = extractConsentUrl(html);
-    if (!consentUrl) {
-      const cc = extractCountryCodeFromHtml(html);
-      $done({ content: cc ? `Consent Page (${cc} ${codeToFlag(cc)})` : "Consent Page", backgroundColor: "" });
-      return;
-    }
-
-    // 2.1 GET consent 页
-    const r2 = await fetchWithJar("GET", consentUrl, jar);
-    if (r2.error) {
-      $done({ content: "Network Error", backgroundColor: "" });
-      return;
-    }
-    const cHtml = String(r2.data || "");
-    const action = parseFormAction(cHtml);
-    const hidden = parseHiddenInputs(cHtml);
-    const btn = pickAcceptButton(cHtml);
-
-    // 2.2 POST save（accept）
-    const postObj = Object.assign({}, hidden);
-    if (btn) postObj[btn.name] = btn.value;
-
-    await fetchWithJar(
-      "POST",
-      action,
-      jar,
-      { "Content-Type": "application/x-www-form-urlencoded" },
-      toFormBody(postObj)
-    );
-
-    // 2.3 再拉一次 premium
-    r = await fetchWithJar("GET", "https://www.youtube.com/premium", jar);
-    if (r.error) {
-      $done({ content: "Network Error", backgroundColor: "" });
-      return;
-    }
-    html = String(r.data || "");
-  }
-
-  // 3) 解析结果
+  const html = String(data || "");
   const lower = html.toLowerCase();
-  let cc = extractCountryCodeFromHtml(html);
 
+  // 国家码优先从响应头拿（更稳），再从 HTML 兜底
+  let code =
+    extractCCFromVisitorPrivacy(response && response.headers) ||
+    extractCountryFromHtml(html);
+
+  // CN 特判
+  if (lower.includes("www.google.cn")) code = "CN";
+
+  // Consent 页：提示但不当成 Unknown
   if (isConsentPage(html)) {
-    $done({ content: cc ? `Consent Page (${cc} ${codeToFlag(cc)})` : "Consent Page", backgroundColor: "" });
+    $done({
+      content: formatWithCountry("Consent Page", code),
+      backgroundColor: "",
+    });
     return;
   }
 
-  // CN 特判
-  if (lower.includes("www.google.cn")) cc = "CN";
-
+  // 不可用提示
   if (
     lower.includes("youtube premium is not available in your country") ||
     lower.includes("premium is not available in your country")
   ) {
-    $done({ content: formatWithCountry("Not Available", cc), backgroundColor: "" });
+    // CN 要求显示 CN
+    if (code === "CN") {
+      $done({ content: formatWithCountry("Not Available", "CN"), backgroundColor: "" });
+      return;
+    }
+    $done({ content: formatWithCountry("Not Available", code), backgroundColor: "" });
     return;
   }
 
+  // 可用信号
   if (lower.includes("ad-free")) {
-    $done({ content: formatWithCountry("Available", cc), backgroundColor: "#FF0000" });
+    $done({
+      content: formatWithCountry("Available", code),
+      backgroundColor: "#FF0000",
+    });
+    return;
+  }
+
+  // 兜底：如果没匹配到 ad-free，但能拿到国家码，仍给出提示避免“Unknown”太多
+  if (code) {
+    $done({ content: formatWithCountry("Unknown", code), backgroundColor: "" });
     return;
   }
 
@@ -233,5 +195,9 @@ async function main() {
 }
 
 (async () => {
-  main().catch(() => $done({ content: "Script Error", backgroundColor: "" }));
+  main()
+    .then(() => {})
+    .catch(() => {
+      $done({ content: "Script Error", backgroundColor: "" });
+    });
 })();

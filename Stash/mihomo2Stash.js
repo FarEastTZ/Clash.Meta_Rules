@@ -69,7 +69,8 @@ const ALLOWED_NAMES = [
   '🇱🇺 LU BVM',
   '🇷🇺 JH SS',
   '🇹🇷 TR SS',
-  '🇸🇬 SP Vmess'
+  '🇸🇬 SP Vmess',
+  '🇯🇵 VM SS'
 ]
 const ALLOWED_SET = new Set(ALLOWED_NAMES.map(norm))
 

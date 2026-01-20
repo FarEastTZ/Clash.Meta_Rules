@@ -4,16 +4,6 @@ desc: >
   流媒体测试
 category: 流媒体
 
-http:
-  mitm:
-    - "www.youtube.com"
-    - "consent.youtube.com"
-  script:
-    - match: ^https:\/\/www\.youtube\.com\/premium
-      name: YouTubePremium.mitm.request
-      type: request
-      require-body: false
-      argument:
 tiles:
   - name: Apple-Check
     title: Apple
@@ -53,5 +43,3 @@ script-providers:
     url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/youtube.js
   Netflix-Check:
     url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/netflix.js
-  YouTubePremium.mitm.request:
-    url: https://raw.githubusercontent.com/FarEastTZ/Clash.Meta_Rules/main/Stash/media-check/script/youtube-premium-mitm-request.js

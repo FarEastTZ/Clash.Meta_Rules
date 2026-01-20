@@ -16,21 +16,24 @@ function codeToFlag(code) {
   return String.fromCodePoint(c1, c2);
 }
 
+// 两位国家码规范化
 function parseCountryCode(raw) {
   const s = String(raw || "").trim();
   const m = s.match(/^([A-Za-z]{2})$/);
   return m ? m[1].toUpperCase() : null;
 }
 
-// 从 Premium/Consent 返回里提取国家码（countryCode/gl）
-function extractCountryCodeFromText(t) {
-  const s = String(t || "");
+// 从 HTML/URL 中提取国家码：优先 countryCode，其次 gl=
+function extractCountryCode(textOrUrl) {
+  const s = String(textOrUrl || "");
+
   const patterns = [
     /"countryCode"\s*:\s*"([A-Za-z]{2})"/,
     /"INNERTUBE_CONTEXT_GL"\s*:\s*"([A-Za-z]{2})"/,
     /"gl"\s*:\s*"([A-Za-z]{2})"/,
     /[?&]gl=([A-Za-z]{2})(?:[&#"'\s]|$)/,
   ];
+
   for (const re of patterns) {
     const m = s.match(re);
     if (m && m[1]) {
@@ -48,121 +51,51 @@ function formatWithCountry(baseText, code) {
   return label ? `${baseText} (${label})` : baseText;
 }
 
+// 仅判断“是否是 consent 页面”
 function isConsentPage(html) {
   const s = String(html || "").toLowerCase();
   return (
     s.includes("consent.youtube.com") ||
     s.includes("before you continue") ||
-    s.includes("继续使用 youtube") ||
-    (s.includes("cookie") && s.includes("google")) ||
-    s.includes('action="https://consent.youtube.com/save"') ||
-    s.includes("consent.youtube.com/save")
+    s.includes("继续使用 youtube 前须知") ||
+    s.includes("我们会使用 cookie")
   );
 }
 
-function getHeader(resp, name) {
-  const h = (resp && resp.headers) ? resp.headers : {};
-  return h[name] || h[name.toLowerCase()] || h[name.toUpperCase()] || "";
+// 判断 Premium 可用的关键词（兼容英文/中文）
+function isPremiumAvailable(html) {
+  const s = String(html || "").toLowerCase();
+
+  // 英文（bash 依赖的）
+  if (s.includes("ad-free")) return true;
+  if (s.includes("background play")) return true;
+  if (s.includes("downloads")) return true;
+
+  // 中文（你截图里的典型文案）
+  if (s.includes("无广告")) return true;
+  if (s.includes("广告") && s.includes("干扰")) return true;
+  if (s.includes("后台播放")) return true;
+  if (s.includes("离线")) return true;
+
+  return false;
 }
 
-function pickConsentUrl(resp, html) {
-  // 1) 先看 302 Location
-  const loc = getHeader(resp, "Location");
-  if (loc && String(loc).includes("consent.youtube.com")) return String(loc);
+function isPremiumNotAvailable(html) {
+  const s = String(html || "").toLowerCase();
+  if (s.includes("youtube premium is not available in your country")) return true;
+  if (s.includes("premium is not available in your country")) return true;
 
-  // 2) 再从 HTML 里抓出 consent 链接（兜底）
-  const s = String(html || "");
-  const m = s.match(/https:\/\/consent\.youtube\.com\/m\?[^"'<>\s]+/i);
-  if (m) return m[0];
+  // 简单中文兜底
+  if (s.includes("premium") && s.includes("不可用") && (s.includes("国家") || s.includes("地区"))) return true;
 
-  return "";
-}
-
-// 解析 consent 页表单：action + hidden inputs + “全部拒绝/全部接受”按钮字段
-function parseConsentForm(html) {
-  const s = String(html || "");
-  const actionMatch = s.match(/action="(https:\/\/consent\.youtube\.com\/save[^"]*)"/i);
-  const action = actionMatch ? actionMatch[1] : "https://consent.youtube.com/save";
-
-  const inputs = {};
-  // hidden inputs
-  const reHidden = /<input[^>]+type="hidden"[^>]*>/gi;
-  const nodes = s.match(reHidden) || [];
-  for (const node of nodes) {
-    const n = (node.match(/name="([^"]+)"/i) || [])[1];
-    const v = (node.match(/value="([^"]*)"/i) || [])[1];
-    if (n) inputs[n] = v || "";
-  }
-
-  // 按钮：中文“全部拒绝/全部接受”或英文 Reject all / Accept all
-  // 取其 name/value，POST 时必须带上
-  const btnRe = /<button[^>]*name="([^"]+)"[^>]*value="([^"]*)"[^>]*>([\s\S]*?)<\/button>/gi;
-  let btn;
-  let rejectKV = null;
-  let acceptKV = null;
-  while ((btn = btnRe.exec(s)) !== null) {
-    const name = btn[1];
-    const value = btn[2];
-    const inner = (btn[3] || "").replace(/\s+/g, " ").trim();
-    if (!rejectKV && /全部拒绝|Reject all/i.test(inner)) rejectKV = { name, value };
-    if (!acceptKV && /全部接受|Accept all/i.test(inner)) acceptKV = { name, value };
-  }
-
-  return { action, inputs, rejectKV, acceptKV };
-}
-
-function toFormBody(obj) {
-  const parts = [];
-  for (const k of Object.keys(obj)) {
-    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(obj[k] ?? "")));
-  }
-  return parts.join("&");
-}
-
-// 自动完成一次 consent：先“全部拒绝”，不行再“全部接受”
-async function completeConsent(consentUrl, headers) {
-  // 1) GET consent 页面
-  const r1 = await request("GET", { url: consentUrl, headers });
-  if (r1.error) return false;
-
-  const form = parseConsentForm(r1.data);
-  const base = Object.assign({}, form.inputs);
-
-  async function submit(btnKV) {
-    if (!btnKV) return false;
-    const bodyObj = Object.assign({}, base);
-    bodyObj[btnKV.name] = btnKV.value;
-
-    const r2 = await request("POST", {
-      url: form.action,
-      headers: Object.assign({}, headers, {
-        "Content-Type": "application/x-www-form-urlencoded",
-      }),
-      body: toFormBody(bodyObj),
-    });
-
-    if (r2.error) return false;
-    // 成功的话通常会 302 回 continue
-    return true;
-  }
-
-  // 先拒绝，再接受兜底
-  if (await submit(form.rejectKV)) return true;
-  if (await submit(form.acceptKV)) return true;
   return false;
 }
 
 async function main() {
-  const url = "https://www.youtube.com/premium?ucbcb=1";
+  const url = "https://www.youtube.com/premium";
 
-  const headers = {
-    "Accept-Language": "en",
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-  };
-
-  // 第一次请求 premium
-  let r = await request("GET", { url, headers });
+  // 1) 第一次：完全按你原始请求，不加任何头/参数，避免把原本正常的地区搞坏
+  let r = await request("GET", url);
 
   if (r.error) {
     $done({ content: "Network Error", backgroundColor: "" });
@@ -171,71 +104,91 @@ async function main() {
 
   let text = String(r.data || "");
   let lower = text.toLowerCase();
-  let cc = extractCountryCodeFromText(text) || extractCountryCodeFromText(getHeader(r.response, "Location"));
 
-  // 如果遇到 consent：走自动同意流程，然后再请求 premium
-  if (isConsentPage(text) || String(getHeader(r.response, "Location")).includes("consent.youtube.com")) {
-    const consentUrl = pickConsentUrl(r.response, text);
+  // 先尝试拿国家码（正常 premium 页通常能拿到 countryCode）
+  let countryCode = extractCountryCode(text);
 
-    // 没拿到 consentUrl 也返回提示
-    if (!consentUrl) {
+  // CN 特判
+  if (lower.includes("www.google.cn")) {
+    countryCode = "CN";
+  }
+
+  // 2) 只有 EU/部分地区遇到 consent 时，才做第二次请求（带 CONSENT cookie）
+  if (isConsentPage(text)) {
+    // consent 页自身通常带 gl=GB 等，可先拿到国家码（用于兜底显示）
+    countryCode = countryCode || extractCountryCode(text);
+
+    const retryHeaders = {
+      "Accept-Language": "en",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      // 用 CONSENT
+      "Cookie": "CONSENT=YES+cb.20220301-11-p0.en+FX+700",
+    };
+
+    const r2 = await request("GET", { url, headers: retryHeaders });
+
+    // 如果第二次失败，就保持 consent 结果（不影响非 EU）
+    if (!r2.error) {
+      r = r2;
+      text = String(r.data || "");
+      lower = text.toLowerCase();
+      countryCode = extractCountryCode(text) || countryCode;
+
+      if (lower.includes("www.google.cn")) countryCode = "CN";
+    } else {
       $done({
-        content: cc ? `Consent Page (${cc} ${codeToFlag(cc)})` : "Consent Page",
+        content: countryCode
+          ? `Consent Page (${countryCode} ${codeToFlag(countryCode)})`
+          : "Consent Page",
         backgroundColor: "",
       });
       return;
     }
 
-    const ok = await completeConsent(consentUrl, headers);
-
-    // 无论 ok 与否，再拉一次 premium（有些环境需要“做完一次”才写入 cookie）
-    r = await request("GET", { url, headers });
-    if (r.error) {
-      $done({ content: "Network Error", backgroundColor: "" });
+    // 第二次仍是 consent
+    if (isConsentPage(text)) {
+      $done({
+        content: countryCode
+          ? `Consent Page (${countryCode} ${codeToFlag(countryCode)})`
+          : "Consent Page",
+        backgroundColor: "",
+      });
       return;
     }
-
-    text = String(r.data || "");
-    lower = text.toLowerCase();
-    cc = extractCountryCodeFromText(text) || cc;
   }
 
-  // CN 特判（你原逻辑）
-  if (lower.includes("www.google.cn")) cc = "CN";
-
-  // 如果仍是 consent：说明 Stash 这边 cookie jar 没保存/被隔离（这时就没法继续拿到 premium 正常页）
-  if (isConsentPage(text)) {
+  // 3) 业务输出：CN -> Not Available (CN 🇨🇳)
+  if (countryCode === "CN") {
     $done({
-      content: cc ? `Consent Page (${cc} ${codeToFlag(cc)})` : "Consent Page",
+      content: formatWithCountry("Not Available", "CN"),
       backgroundColor: "",
     });
     return;
   }
 
-  // Not Available（兼容英文 + 一点中文兜底）
-  if (
-    lower.includes("youtube premium is not available in your country") ||
-    lower.includes("premium is not available in your country") ||
-    lower.includes("在您所在的国家") && lower.includes("premium") && lower.includes("不可用")
-  ) {
-    if (cc === "CN") {
-      $done({ content: formatWithCountry("Not Available", "CN"), backgroundColor: "" });
-      return;
-    }
-    $done({ content: formatWithCountry("Not Available", cc), backgroundColor: "" });
+  // 4) Not Available 文案
+  if (isPremiumNotAvailable(text)) {
+    $done({
+      content: formatWithCountry("Not Available", countryCode),
+      backgroundColor: "",
+    });
     return;
   }
 
-  // Available（英文 ad-free，和中文“无广告”兜底）
-  if (lower.includes("ad-free") || lower.includes("无广告")) {
+  // 5) Available（成功时显示国家码+国旗，取不到就只显示 Available）
+  if (isPremiumAvailable(text)) {
     $done({
-      content: formatWithCountry("Available", cc),
+      content: formatWithCountry("Available", countryCode),
       backgroundColor: "#FF0000",
     });
     return;
   }
 
-  $done({ content: "Unknown Error", backgroundColor: "" });
+  $done({
+    content: "Unknown Error",
+    backgroundColor: "",
+  });
 }
 
 (async () => {

@@ -31,7 +31,7 @@ function formatWithCountry(baseText, code) {
   return label ? `${baseText} (${label})` : baseText;
 }
 
-// 判断是否 consent 页面（尽量严格，避免误判）
+// 判断是否 consent 页面
 function isConsentPage(html) {
   const s = String(html || "").toLowerCase();
   return (
@@ -40,12 +40,11 @@ function isConsentPage(html) {
     s.includes("before you continue") ||
     s.includes("continue to youtube") ||
     s.includes("继续使用 youtube") ||
-    // 很多同意页会出现 save/consent 的 form
     (s.includes("/save") && s.includes("consent"))
   );
 }
 
-// 从 Premium 页面 HTML/内嵌数据中提取国家码（兜底）
+// 从 Premium 页面 HTML/内嵌数据中提取国家码
 function extractCountryFromHtml(html) {
   const s = String(html || "");
 
@@ -66,7 +65,7 @@ function extractCountryFromHtml(html) {
   return null;
 }
 
-// ========== 从响应头 Set-Cookie 里解析国家码（更稳） ==========
+// ========== 从响应头 Set-Cookie 里解析国家码 ==========
 
 function getSetCookie(headers) {
   if (!headers) return [];
@@ -128,10 +127,9 @@ async function main() {
       "Accept-Language": "en",
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      // 不塞 Cookie：避免污染导致“越测越全 consent”
     },
     timeout: 10,
-    "auto-cookie": false,   // 关键：每次检测不复用 cookie
+    "auto-cookie": false,   // 每次检测不复用 cookie
     "auto-redirect": true,
   };
 
@@ -145,7 +143,7 @@ async function main() {
   const html = String(data || "");
   const lower = html.toLowerCase();
 
-  // 国家码优先从响应头拿（更稳），再从 HTML 兜底
+  // 国家码优先从响应头拿，再从 HTML 兜底
   let code =
     extractCCFromVisitorPrivacy(response && response.headers) ||
     extractCountryFromHtml(html);
@@ -153,10 +151,10 @@ async function main() {
   // CN 特判
   if (lower.includes("www.google.cn")) code = "CN";
 
-  // Consent 页：提示但不当成 Unknown
+  // Consent
   if (isConsentPage(html)) {
     $done({
-      content: formatWithCountry("Consent Page", code),
+      content: formatWithCountry("Unknown", code),
       backgroundColor: "",
     });
     return;

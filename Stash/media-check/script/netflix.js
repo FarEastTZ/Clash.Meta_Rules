@@ -49,7 +49,7 @@ async function main() {
   if (country) {
     const cc = formatCountryWithFlag(country);
     $done({
-      content: `No Restriction (${cc})`,
+      content: `Yes (${cc})`,
       backgroundColor: "#E50914",
     });
     return;
@@ -59,7 +59,7 @@ async function main() {
   if (country) {
     const cc = formatCountryWithFlag(country);
     $done({
-      content: `Originals Only (${cc})`,
+      content: `Originals (${cc})`,
       backgroundColor: "#E50914",
     });
     return;

@@ -167,17 +167,17 @@ async function main() {
   ) {
     // CN 要求显示 CN
     if (code === "CN") {
-      $done({ content: formatWithCountry("Not Available", "CN"), backgroundColor: "" });
+      $done({ content: formatWithCountry("No", "CN"), backgroundColor: "" });
       return;
     }
-    $done({ content: formatWithCountry("Not Available", code), backgroundColor: "" });
+    $done({ content: formatWithCountry("No", code), backgroundColor: "" });
     return;
   }
 
   // 可用信号
   if (lower.includes("ad-free")) {
     $done({
-      content: formatWithCountry("Available", code),
+      content: formatWithCountry("Yes", code),
       backgroundColor: "#FF0000",
     });
     return;

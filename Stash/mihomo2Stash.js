@@ -1,6 +1,14 @@
 // 读取 YAML
 const yamlObj = ProxyUtils.yaml.safeLoad($content ?? $files[0])
 
+// 优先读取 URL 动态参数，其次读取前端固定参数
+const filterGrpcRaw = String($options?.filterGrpc ?? $arguments?.filterGrpc ?? '').trim().toLowerCase()
+
+// 为空时默认 true；显式传 false / 0 / no / off 时为 false
+const filterGrpc = filterGrpcRaw === ''
+  ? true
+  : !['false', '0', 'no', 'off'].includes(filterGrpcRaw)
+
 /** =========================
  * A) 递归删除指定键（任意层级）
  * ========================= */
@@ -58,10 +66,52 @@ if (!Array.isArray(yamlObj['proxy-groups'])) {
   yamlObj['proxy-groups'] = yamlObj['proxy-groups'] ? [].concat(yamlObj['proxy-groups']) : []
 }
 
-function norm(s) { return String(s ?? '').normalize('NFC').trim() }
+function norm(s) { return String(s ?? '').normalize('NFC').trim()}
 
 /** =========================
- * D) 移除所有 proxy-groups 中 proxies 列表的 "PASS"
+ * D) 根据 filterGrpc 删除 name 以 grpc 结尾的 proxies
+ *    - 为空时默认 true
+ *    - 为 true 时删除，并同步清理 proxy-groups 中对应引用
+ *    - 为 false 时不处理
+ * ========================= */
+if (filterGrpc) {
+  const removedGrpcNameSet = new Set()
+  const keptProxies = []
+
+  for (const p of yamlObj['proxies']) {
+    if (!p || typeof p !== 'object') {
+      keptProxies.push(p)
+      continue
+    }
+
+    const proxyName = norm(p.name)
+    const isGrpcName = proxyName.toLowerCase().endsWith('grpc')
+
+    if (isGrpcName) {
+      if (proxyName) removedGrpcNameSet.add(proxyName)
+      continue
+    }
+
+    keptProxies.push(p)
+  }
+
+  yamlObj['proxies'] = keptProxies
+
+  // 清理 proxy-groups 中对被删 grpc 节点的引用
+  if (removedGrpcNameSet.size > 0) {
+    for (const g of yamlObj['proxy-groups']) {
+      if (!g || typeof g !== 'object') continue
+      if (Array.isArray(g.proxies)) {
+        g.proxies = g.proxies.filter(v => {
+          return !(typeof v === 'string' && removedGrpcNameSet.has(norm(v)))
+        })
+      }
+    }
+  }
+}
+
+/** =========================
+ * E) 移除所有 proxy-groups 中 proxies 列表的 "PASS"
  * ========================= */
 for (const g of yamlObj['proxy-groups']) {
   if (!g || typeof g !== 'object') continue
@@ -71,19 +121,19 @@ for (const g of yamlObj['proxy-groups']) {
 }
 
 /** =========================
- * E) rules 清理与修正：
- *    E1) 删除所有包含 "PROCESS-NAME" 的条目（大小写不敏感）
- *    E2) 删除特定双栈端口 AND 规则
- *    E3) 将 YouTube QUIC 禁用从 (DST-PORT,443)+(NETWORK,UDP) 改写为 (PROTOCOL,QUIC)
+ * F) rules 清理与修正：
+ *    F1) 删除所有包含 "PROCESS-NAME" 的条目（大小写不敏感）
+ *    F2) 删除特定双栈端口 AND 规则
+ *    F3) 将 YouTube QUIC 禁用从 (DST-PORT,443)+(NETWORK,UDP) 改写为 (PROTOCOL,QUIC)
  * ========================= */
 function normalizeRule(s) {
   return String(s ?? '').normalize('NFC').replace(/\s+/g, '')
 }
 
-// E2：需要删除的“↕️ 双栈节点”规则
+// F2：需要删除的“↕️ 双栈节点”规则
 const RULE1_DELETE = 'AND,((OR,(IP-CIDR6,240e:974:eb00:908::c4c:57/16),(IP-CIDR6,2a13:b487:4f08:6b6b::3e/16),(DOMAIN,cqcmv6.frtz.club),(DOMAIN,aq.frtz.club)),(DST-PORT,22/11129)),↕️ 双栈节点'
 
-// E3：把旧的 QUIC 规则改写为新的
+// F3：把旧的 QUIC 规则改写为新的
 const QUIC_RULE_OLD = 'AND,((GEOSITE,youtube),(AND,(DST-PORT,443),(NETWORK,UDP))),🇶 QUIC禁用'
 const QUIC_RULE_NEW = 'AND,((GEOSITE,youtube),(PROTOCOL,QUIC)),🇶 QUIC禁用'
 
@@ -95,15 +145,15 @@ if (Array.isArray(yamlObj['rules'])) {
   for (const rule of yamlObj['rules']) {
     if (typeof rule !== 'string') { out.push(rule); continue }
 
-    // E1) 删除包含 PROCESS-NAME 的条目
+    // F1) 删除包含 PROCESS-NAME 的条目
     if (/PROCESS-NAME/i.test(rule)) continue
 
     const normed = normalizeRule(rule)
 
-    // E2) 删除“↕️ 双栈节点”规则
+    // F2) 删除“↕️ 双栈节点”规则
     if (normed === RULE1_DELETE_N) continue
 
-    // E3) 命中旧的 QUIC 规则则改写为新的
+    // F3) 命中旧的 QUIC 规则则改写为新的
     if (normed === QUIC_RULE_OLD_N) {
       out.push(QUIC_RULE_NEW)
       continue
@@ -117,7 +167,7 @@ if (Array.isArray(yamlObj['rules'])) {
 }
 
 /** =========================
- * F) 导出
+ * G) 导出
  * ========================= */
 const output = ProxyUtils.yaml.safeDump(yamlObj/*, { lineWidth: -1 }*/)
 $content = output

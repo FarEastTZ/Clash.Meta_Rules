@@ -61,7 +61,7 @@ if (!Array.isArray(yamlObj['proxy-groups'])) {
 function norm(s) { return String(s ?? '').normalize('NFC').trim() }
 
 /** =========================
- * E) 移除所有 proxy-groups 中 proxies 列表的 "PASS"
+ * D) 移除所有 proxy-groups 中 proxies 列表的 "PASS"
  * ========================= */
 for (const g of yamlObj['proxy-groups']) {
   if (!g || typeof g !== 'object') continue
@@ -71,19 +71,19 @@ for (const g of yamlObj['proxy-groups']) {
 }
 
 /** =========================
- * F) rules 清理与修正：
- *    F1) 删除所有包含 "PROCESS-NAME" 的条目（大小写不敏感）
- *    F2) 删除特定双栈端口 AND 规则
- *    F3) 将 YouTube QUIC 禁用从 (DST-PORT,443)+(NETWORK,UDP) 改写为 (PROTOCOL,QUIC)
+ * E) rules 清理与修正：
+ *    E1) 删除所有包含 "PROCESS-NAME" 的条目（大小写不敏感）
+ *    E2) 删除特定双栈端口 AND 规则
+ *    E3) 将 YouTube QUIC 禁用从 (DST-PORT,443)+(NETWORK,UDP) 改写为 (PROTOCOL,QUIC)
  * ========================= */
 function normalizeRule(s) {
   return String(s ?? '').normalize('NFC').replace(/\s+/g, '')
 }
 
-// F2：需要删除的“↕️ 双栈节点”规则
+// E2：需要删除的“↕️ 双栈节点”规则
 const RULE1_DELETE = 'AND,((OR,(IP-CIDR6,240e:974:eb00:908::c4c:57/16),(IP-CIDR6,2a13:b487:4f08:6b6b::3e/16),(DOMAIN,cqcmv6.frtz.club),(DOMAIN,aq.frtz.club)),(DST-PORT,22/11129)),↕️ 双栈节点'
 
-// F3：把旧的 QUIC 规则改写为新的
+// E3：把旧的 QUIC 规则改写为新的
 const QUIC_RULE_OLD = 'AND,((GEOSITE,youtube),(AND,(DST-PORT,443),(NETWORK,UDP))),🇶 QUIC禁用'
 const QUIC_RULE_NEW = 'AND,((GEOSITE,youtube),(PROTOCOL,QUIC)),🇶 QUIC禁用'
 
@@ -95,15 +95,15 @@ if (Array.isArray(yamlObj['rules'])) {
   for (const rule of yamlObj['rules']) {
     if (typeof rule !== 'string') { out.push(rule); continue }
 
-    // F1) 删除包含 PROCESS-NAME 的条目
+    // E1) 删除包含 PROCESS-NAME 的条目
     if (/PROCESS-NAME/i.test(rule)) continue
 
     const normed = normalizeRule(rule)
 
-    // F2) 删除“↕️ 双栈节点”规则
+    // E2) 删除“↕️ 双栈节点”规则
     if (normed === RULE1_DELETE_N) continue
 
-    // F3) 命中旧的 QUIC 规则则改写为新的
+    // E3) 命中旧的 QUIC 规则则改写为新的
     if (normed === QUIC_RULE_OLD_N) {
       out.push(QUIC_RULE_NEW)
       continue
@@ -117,7 +117,7 @@ if (Array.isArray(yamlObj['rules'])) {
 }
 
 /** =========================
- * G) 导出
+ * F) 导出
  * ========================= */
 const output = ProxyUtils.yaml.safeDump(yamlObj/*, { lineWidth: -1 }*/)
 $content = output

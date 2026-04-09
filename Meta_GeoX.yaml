@@ -217,6 +217,22 @@ proxy-groups:
     filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|🇰🇷|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates|韩|kr|korea)).*"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
 
+  #分隔,下面是前置分组分组
+
+  - name: 欧洲前置
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "^(?=.*GB)(?=.*CN2).*"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Europe_Map.png
+
+  - name: 亚太前置
+    type: select
+    include-all: true
+    exclude-type: direct
+    filter: "(?i)(腾讯云)"
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Asia_Map.png
+
   - name: 自动选择
     type: url-test
     include-all: true

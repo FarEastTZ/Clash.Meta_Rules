@@ -217,7 +217,7 @@ proxy-groups:
     filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|🇰🇷|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates|韩|kr|korea)).*"
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
 
-  #分隔,下面是前置分组分组
+  #分隔,下面是前置分组
 
   - name: 欧洲前置
     type: select

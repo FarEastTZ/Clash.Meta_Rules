@@ -53,6 +53,16 @@ yamlObj['dns'] = {
     'https://223.5.5.5/dns-query',
     'https://120.53.53.53/dns-query'
   ],
+  'nameserver-policy': {
+    'geosite:geolocation-!cn': [
+      'tls://1.0.0.1:853',
+      'tls://8.8.4.4:853'
+    ],
+    'geosite:cn': [
+      'https://dns.alidns.com/dns-query',
+      'https://doh.pub/dns-query'
+    ]
+  },
   'follow-rule': true
 }
 

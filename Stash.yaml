@@ -196,6 +196,8 @@ rules:
   - GEOSITE,google,Google
   - GEOSITE,telegram,Telegram
   - GEOSITE,netflix,NETFLIX
+  - GEOSITE,steam@cn,国内
+  - DOMAIN-SUFFIX,steamserver.net,国内
   - GEOSITE,steam,Steam
   - GEOSITE,bilibili,哔哩哔哩
   - GEOSITE,bahamut,巴哈姆特

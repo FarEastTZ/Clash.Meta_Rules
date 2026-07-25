@@ -137,7 +137,8 @@ payload:
   - DOMAIN-SUFFIX,22c.in
   - DOMAIN-SUFFIX,imgxxx.shunxincar.cn
   - DOMAIN-SUFFIX,cc58.oss-cn-beijing.aliyuncs.com
-  - DOMAIN-SUFFIX,oss-accelerate.aliyuncs.com
+  # 什么神经病误杀，Steam Cloud同步会走这域名
+  # - DOMAIN-SUFFIX,oss-accelerate.aliyuncs.com
   - DOMAIN-SUFFIX,kk.braincf.com
   - DOMAIN-SUFFIX,run.haireig.com
   - DOMAIN-SUFFIX,d.zxptw.cn
